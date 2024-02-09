@@ -1,204 +1,233 @@
-/*
-   Variables for AKS cluster module
-*/
 
-
-/**********************************************
-Provider details
-**********************************************/
-variable "subscription_id" {
-  description = "subscription id:"
-}
-variable "tenant_id" {
-  description = "tenant id:"
-}
-variable "client_id" {
-  description = "client id:"
-}
-variable "client_secret" {
-  description = "client secret password:"
+variable "name" {
+  type        = string
+  default     = ""
+  description = "Name  (e.g. `app` or `cluster`)."
 }
 
-
-/**********************************
-Service Principal details
-***********************************/
-
-variable "azure_client_id" {
-  description = "client id:"
-}
-variable "azure_secret_id" {
-  description = "client secret password:"
+variable "repository" {
+  type        = string
+  default     = "https://github.com/slovink/terraform-azure-aks"
+  description = "Terraform current module repo"
 }
 
-
-/************************************************
-Global Variables
-*************************************************/
-variable "resourceGroup" {
-  description = "Project Prefix:"
-  default = "azResourceGroup"
+variable "environment" {
+  type        = string
+  default     = ""
+  description = "Environment (e.g. `prod`, `dev`, `staging`)."
 }
 
-variable "vnetName" {
-  description = "Virtual Network Name:"
-  default = "mainVnet"
+variable "label_order" {
+  type        = list(any)
+  default     = ["name", "environment"]
+  description = "Label order, e.g. `name`,`application`."
 }
 
-variable "aksSubnetName" {
-  description = "Subnet Name for AKS:"
-  default = "aksSubnet"
+variable "managedby" {
+  type        = string
+  default     = "contact@slovink.com"
+  description = "ManagedBy, eg 'slovink'."
 }
 
-variable "aksClusterName" {
-  description = "Cluster Name for AKS:"
-  default = "aksCluster"
+variable "enabled" {
+  type        = bool
+  description = "Set to false to prevent the module from creating any resources."
+  default     = true
 }
 
-variable "dns_prefix" {
-  description = "DNS prefix for AKS:"
-  default = "az-test-dev"
+variable "resource_group_name" {
+  type        = any
+  default     = ""
+  description = "A container that holds related resources for an Azure solution"
 }
 
 variable "location" {
-  description = "Location:"
-  default     = "westeurope"
+  type        = string
+  default     = ""
+  description = "Location where resource should be created."
+}
+
+variable "kubernetes_version" {
+  type        = string
+  default     = "1..24.3"
+  description = "Version of Kubernetes to deploy"
+}
+
+variable "aks_sku_tier" {
+  type        = string
+  default     = "Free"
+  description = "aks sku tier. Possible values are Free ou Paid"
+}
+
+variable "private_cluster_enabled" {
+  type        = bool
+  default     = true
+  description = "Configure AKS as a Private Cluster : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#private_cluster_enabled"
+}
+
+variable "node_resource_group" {
+  type        = string
+  default     = null
+  description = "Name of the resource group in which to put AKS nodes. If null default to MC_<AKS RG Name>"
+}
+
+variable "private_dns_zone_type" {
+  type        = string
+  default     = "System"
+  description = <<EOD
+Set AKS private dns zone if needed and if private cluster is enabled (privatelink.<region>.azmk8s.io)
+- "Custom" : You will have to deploy a private Dns Zone on your own and pass the id with <private_dns_zone_id> variable
+If this settings is used, aks user assigned identity will be "userassigned" instead of "systemassigned"
+and the aks user must have "Private DNS Zone Contributor" role on the private DNS Zone
+- "System" : AKS will manage the private zone and create it in the same resource group as the Node Resource Group
+- "None" : In case of None you will need to bring your own DNS server and set up resolving, otherwise cluster will have issues after provisioning.
+https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#private_dns_zone_id
+EOD
+}
+
+variable "default_node_pool" {
+  description = <<EOD
+Default node pool configuration:
+```
+map(object({
+    name                  = string
+    count                 = number
+    vm_size               = string
+    os_type               = string
+    availability_zones    = list(number)
+    enable_auto_scaling   = bool
+    min_count             = number
+    max_count             = number
+    type                  = string
+    node_taints           = list(string)
+    vnet_subnet_id        = string
+    max_pods              = number
+    os_disk_type          = string
+    os_disk_size_gb       = number
+    enable_node_public_ip = bool
+}))
+```
+EOD
+
+  type    = map(any)
+  default = {}
+}
+
+variable "private_dns_zone_id" {
+  type        = string
+  default     = null
+  description = "Id of the private DNS Zone when <private_dns_zone_type> is custom"
 }
 
 
-/************************************************
-Global Tags
-*************************************************/
-variable "environment_owner" {
-  description = "Environment-owner Name:"
-  default     = "ccoe"
-}
-variable "environment_costcenter" {
-  description = "Environment-costcenter Name:"
-  default     = "ccoe"
-}
-variable "environment_controller" {
-  description = "Environment-controller Name:"
-  default     = "ccoe"
+variable "linux_profile" {
+  description = "Username and ssh key for accessing AKS Linux nodes with ssh."
+  type = object({
+    username = string,
+    ssh_key  = string
+  })
+  default = null
 }
 
-/************************************************
-AKS Cluster Variables
-*************************************************/
-
-variable "k8s_version" {
-  description = "Kubernetes version"
-  default     = "1.18.10"
-}
-/***** Linux profile *******/
-
-variable "k8s_user" {
-  description = "Kubernetes user"
-  default     = "aksuser"
-}
-variable "ssh_key_path" {
-  description = "Kubernetes ssh key file path like sshkey/example_rsa_id.pub"
-  default     = "/az/id_rsa.pub"
+variable "service_cidr" {
+  type        = string
+  default     = "10.0.0.0/16"
+  description = "CIDR used by kubernetes services (kubectl get svc)."
 }
 
-/****** Network profile ******/
+variable "outbound_type" {
+  type        = string
+  default     = "loadBalancer"
+  description = "The outbound (egress) routing method which should be used for this Kubernetes Cluster. Possible values are `loadBalancer` and `userDefinedRouting`."
+}
+
+variable "nodes_subnet_id" {
+  type        = string
+  description = "Id of the subnet used for nodes"
+}
+
+variable "nodes_pools" {
+  default     = []
+  type        = list(any)
+  description = "A list of nodes pools to create, each item supports same properties as `local.default_agent_profile`"
+
+}
+
+variable "vnet_id" {
+  type        = string
+  default     = null
+  description = "Vnet id that Aks MSI should be network contributor in a private cluster"
+}
+
+variable "enable_http_application_routing" {
+  type        = bool
+  default     = false
+  description = "Enable HTTP Application Routing Addon (forces recreation)."
+}
+
+variable "enable_azure_policy" {
+  type        = bool
+  default     = true
+  description = "Enable Azure Policy Addon."
+}
+
+variable "microsoft_defender_enabled" {
+  type        = bool
+  default     = false
+  description = "Enable microsoft_defender_enabled Addon."
+}
+
+
+variable "log_analytics_workspace_id" {
+  type        = string
+  default     = null
+  description = "The ID of log analytics"
+}
 
 variable "network_plugin" {
-  description = "Network plugin"
+  type        = string
   default     = "azure"
-}
-variable "dns_service_ip" {
-  description = "DNS Service IP"
-  default     = "172.16.0.10"
-}
-variable "docker_bridge_cidr" {
-  description = "Docker Bridge CIDR"
-  default     = "172.17.0.1/16"
-}
-variable "service_cidr" {
-  description = "Service CIDR"
-  default     = "172.16.0.0/16"
+  description = "Network plugin to use for networking."
 }
 
-/*****  Default node pool *******/
-
-variable "node_count" {
-  description = "Kubernetes default pool node count"
-  default     = "1"
-}
-variable "os_type" {
-  description = "Kubernetes default pool node os type"
-  default     = "Linux"
-}
-variable "os_disk_size_gb" {
-  description = "Kubernetes default pool node os disk size in GB"
-  default     = "32"
-}
-variable "vm_size" {
-  description = "Kubernetes default pool node vm size "
-  default     = "Standard_DS3_v2"
+variable "network_policy" {
+  type        = string
+  default     = null
+  description = " (Optional) Sets up network policy to be used with Azure CNI. Network policy allows us to control the traffic flow between pods. Currently supported values are calico and azure. Changing this forces a new resource to be created."
 }
 
-/*******************************
-Default node pool Autoscaling 
-********************************/
-
-variable "node_min_count" {
-  description = "Kubernetes default pool node min count"
-  default     = "1"
-}
-variable "node_max_count" {
-  description = "Kubernetes default pool node max count"
-  default     = "1"
-}
-/*variable "auto_scaling" {
-  description = "Kubernetes default pool auto scaling true/false"
-}*/
-
-
-/***************************
-Additional node pool 
-****************************/
-
-variable "additonal_node_pool" {
-  description = "Create Kubernetes Additional pool node pool"
-  default     = "enable"
+variable "acr_enabled" {
+  type        = bool
+  default     = false
+  description = "The enable and disable the acr access for aks"
 }
 
-variable "additonal_node_pool_name" {
-  description = "Kubernetes Additional pool node name"
-  default     = "extrapool"
+variable "acr_id" {
+  type        = string
+  default     = ""
+  description = "azure container resource id to provide access for aks"
 }
 
-variable "add_node_count" {
-  description = "Kubernetes Additional pool node count"
-  default     = "1"
-}
-variable "add_os_type" {
-  description = "Kubernetes Additional pool node os type"
-  default     = "Linux"
-}
-variable "add_os_disk_size_gb" {
-  description = "Kubernetes Additional pool node os disk size in GB"
-  default     = "32"
-}
-variable "add_vm_size" {
-  description = "Kubernetes Additional pool node vm size "
-  default     = "Standard_D3_v2"
+variable "key_vault_id" {
+  type        = string
+  default     = ""
+  description = "Specifies the URL to a Key Vault Key (either from a Key Vault Key, or the Key URL for the Key Vault Secret"
 }
 
-/******************************
-Autoscaling for additional pool
-*******************************/
+variable "role_based_access_control" {
+  type = list(object({
+    managed                = bool
+    tenant_id              = string
+    admin_group_object_ids = list(string)
+    azure_rbac_enabled     = bool
+  }))
+  default = null
+}
 
-variable "add_node_min_count" {
-  description = "Kubernetes Additional pool node min count"
-  default     = "1"
+# Diagnosis Settings Enable
+
+variable "cmk_enabled" {
+  type        = bool
+  default     = false
+  description = "Flag to control resource creation related to cmk encryption."
 }
-variable "add_node_max_count" {
-  description = "Kubernetes Additional pool node max count"
-  default     = "1"
-}
-/*variable "add_auto_scaling" {
- description = "Kubernetes Additional pool auto scaling true/false"
-}*/
