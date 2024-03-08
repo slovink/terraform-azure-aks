@@ -1,8 +1,23 @@
-# Azure Kubernetes Service
-[![Changelog](https://img.shields.io/badge/changelog-release-green.svg)](CHANGELOG.md) [![Notice](https://img.shields.io/badge/notice-copyright-yellow.svg)](NOTICE) [![Apache V2 License](https://img.shields.io/badge/license-Apache%20V2-orange.svg)](LICENSE) [![TF Registry](https://img.shields.io/badge/terraform-registry-blue.svg)](https://registry.terraform.io/modules/claranet/vpn/azurerm/)
+<p align="center"> <img src="https://user-images.githubusercontent.com/50652676/62349836-882fef80-b51e-11e9-99e3-7b974309c7e3.png" width="100" height="100"></p>
 
 
-Azure Kubernetes Service (AKS) offers serverless Kubernetes, an integrated continuous integration and continuous delivery (CI/CD) experience and enterprise-grade security and governance. Unite your development and operations teams on a single platform to rapidly build, deliver and scale applications with confidence.
+<h1 align="center">
+    Terraform Azure Acr
+</h1>
+
+<p align="center" style="font-size: 1.2rem;">
+    Terraform module to create Acr resource on Azure.
+     </p>
+
+<p align="center">
+
+<a href="https://www.terraform.io">
+  <img src="https://img.shields.io/badge/Terraform-v1.7.4-green" alt="Terraform">
+</a>
+<a href="https://github.com/slovink/terraform-azure-aks/blob/master/LICENSE">
+  <img src="https://img.shields.io/badge/License-APACHE-blue.svg" alt="Licence">
+</a>
+
 
 ## Version compatibility
 
@@ -10,7 +25,7 @@ Azure Kubernetes Service (AKS) offers serverless Kubernetes, an integrated conti
 |----------------|-------------------|
 | >= 1.x.x       | 0.14.x            |
 | >= 1.x.x       | 0.13.x            |
-| >= 1.x.x       | 0.12.x            |
+| >= 1.x.x       | 1.7.x             |
 
 ## Resources
 
@@ -92,21 +107,39 @@ private_dns_zone_id =
 
 ```hcl
 module "aks" {
-  source  = ""
-  version = "1.0.0"
-
-  prefix =
-  project_prefix =
-  project =
-  environment =
-  location =
-
-  environment_owner =
-  environment_costcenter =
-  environment_controller =
-
-
+  source              = "https://github.com/slovink/terraform-azure-aks.git?ref=1.0.0"
+  name                = "app"
+  environment         = "test"
+  resource_group_name = module.resource_group.resource_group_name
+  location            = module.resource_group.resource_group_location
+  kubernetes_version  = "1.28.3"
+  default_node_pool = {
+    name                  = "agentpool"
+    max_pods              = 200
+    os_disk_size_gb       = 64
+    vm_size               = "Standard_B2s"
+    count                 = 1
+    enable_node_public_ip = false
   }
+
+  ##### if requred more than one node group.
+  nodes_pools = [
+    {
+      name                  = "nodegroup1"
+      max_pods              = 200
+      os_disk_size_gb       = 64
+      vm_size               = "Standard_B2s"
+      count                 = 1
+      enable_node_public_ip = false
+      mode                  = "User"
+    },
+
+  ]
+  #networking
+  vnet_id         = module.vnet.id
+  nodes_subnet_id = module.subnet.default_subnet_id
+
+}
 ```
 
 ## Deploy Resources
@@ -138,12 +171,14 @@ terraform destroy
 
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/slovink/terraform-azure-aks/blob/krishan/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/slovink/terraform-azure-aks/blob/dev/LICENSE) file for details.
 
+## Examples
+For detailed examples on how to use this module, please refer to the [Examples](https://github.com/slovink/terraform-azure-aks/tree/dev/_examples) directory within this repository.
 
 
 ## Feedback
-If you come accross a bug or have any feedback, please log it in our [issue tracker](https://github.com/slovink/terraform-azure-aks/issues), or feel free to drop us an email at [devops@slovink.com](mailto:devops@slovink.com).
+If you come accross a bug or have any feedback, please log it in our [issue tracker](https://github.com/slovink/terraform-azure-aks/issues), or feel free to drop us an email at [contact@slovink.com](contact@slovink.com).
 
 If you have found it worth your time, go ahead and give us a ★ on [our GitHub](https://github.com/slovink/terraform-azure-aks)!
 
@@ -152,7 +187,7 @@ If you have found it worth your time, go ahead and give us a ★ on [our GitHub]
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6.6 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7.4 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >=3.87.0 |
 
 ## Providers
